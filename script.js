@@ -7,6 +7,7 @@ const STORE = Object.freeze({
 });
 
 const products = [
+  { id: "NDS-033", name: "Water Leak Sensor Alarm", category: "Smart home", brand: "Home Guard", price: 45000, stock: 5, rating: 4.6, reviews: 8, badge: "NEW IN", featured: true, isNew: true, image: "assets/water-leak-sensor.svg", keywords: "water leak sensor detector alarm flood smart home moisture", description: "A compact sensor to help detect water leaks around the home. Confirm alarm and connectivity features with our team before ordering.", specs: ["Water leak detection", "Home sensor", "Confirm alarm and connectivity features"] },
   { id: "NDS-001", name: "USB-C Fast Wall Charger", category: "Power & charging", brand: "Everyday Tech", price: 25000, previousPrice: 30000, stock: 8, rating: 4.8, reviews: 24, badge: "17% OFF", featured: true, image: "photo-1583394838336-acd977736f90", keywords: "charger adapter type c fast samsung phone power", description: "A compact everyday charger for compatible USB-C devices.", specs: ["USB-C output", "Compact design", "Wall adapter"] },
   { id: "NDS-002", name: "Braided USB-C Cable", category: "Power & charging", brand: "Everyday Tech", price: 10000, previousPrice: 13000, stock: 14, rating: 4.7, reviews: 18, badge: "POPULAR", featured: true, image: "photo-1583863788434-e58a36330cf0", keywords: "cable charging type c usb braided", description: "A durable-feel braided cable for charging and everyday use.", specs: ["USB-C connector", "Braided finish", "Everyday length"] },
   { id: "NDS-003", name: "Over-Ear Wireless Headphones", category: "Audio", brand: "Sound Daily", price: 68000, previousPrice: 82000, stock: 5, rating: 4.9, reviews: 31, badge: "17% OFF", featured: true, image: "photo-1505740420928-5e560c06d30e", keywords: "headphones bluetooth wireless music audio", description: "Comfortable over-ear listening for music, calls and focus time.", specs: ["Wireless connection", "Over-ear fit", "Foldable design"] },
@@ -41,7 +42,21 @@ const products = [
   { id: "NDS-032", name: "Universal Travel Adapter", category: "Power & charging", brand: "Everyday Tech", price: 35000, stock: 6, rating: 4.5, reviews: 8, badge: "NEW IN", image: "photo-1625842268584-8f3296236761", keywords: "travel power adapter plug charger universal", description: "A travel adapter option. Confirm plug type and device compatibility.", specs: ["Travel adapter", "Power accessory", "Confirm plug compatibility"] }
 ];
 
+const serviceOptions = {
+  ask: { label: "Ask about a product", fee: 2000, includesGoods: false },
+  find: { label: "Ask us to find a product", fee: 3500, includesGoods: false },
+  buy: { label: "Buy goods and arrange delivery", fee: 5000, includesGoods: true }
+};
+
+const searchAliasGroups = [
+  ["phone", "phones", "mobile", "smartphone", "iphone", "samsung", "galaxy"],
+  ["earbud", "earbuds", "earphone", "earphones", "headphone", "headphones", "headset"],
+  ["memory", "microsd", "sd", "card", "storage", "flash", "drive", "stick"],
+  ["charger", "charging", "adapter", "power"]
+];
+
 const categories = [
+  { name: "Smart home", key: "Smart home", description: "Sensors & connected devices", image: "assets/water-leak-sensor.svg", icon: "⌂", count: "Feel more at ease" },
   { name: "Mobile accessories", key: "Mobile", description: "Covers, cables & screen care", image: "photo-1511707171634-5f897ff02aa9", icon: "◈", count: "Everyday essentials" },
   { name: "Audio", key: "Audio", description: "Earbuds, headphones & sound", image: "photo-1505740420928-5e560c06d30e", icon: "♫", count: "Find your sound" },
   { name: "Computer accessories", key: "Computer", description: "Desk gear, hubs & more", image: "photo-1527814050087-3793815479db", icon: "⌘", count: "Work a little smarter" },
@@ -65,7 +80,45 @@ const state = {
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const formatPrice = amount => `${STORE.currency} ${new Intl.NumberFormat("en-TZ").format(amount)}`;
-const imageUrl = (id, width = 640) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=82`;
+const imageUrl = (id, width = 640) => id.startsWith("assets/") ? id : `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=82`;
+const escapeHTML = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+
+function searchTerms(query) {
+  return query.toLowerCase().match(/[a-z0-9]+/g) || [];
+}
+
+function searchScore(product, query) {
+  const terms = searchTerms(query);
+  if (!terms.length) return 0;
+  const haystack = `${product.name} ${product.category} ${product.brand} ${product.id} ${product.keywords}`.toLowerCase();
+  const searchableWords = haystack.match(/[a-z0-9]+/g) || [];
+  const matched = terms.filter(term => {
+    const aliases = searchAliasGroups.find(group => group.includes(term)) || [term];
+    return aliases.some(alias => haystack.includes(alias)) ||
+      (term.length >= 5 && searchableWords.some(word => word.length >= 5 && editDistanceAtMostOne(term, word)));
+  }).length;
+  return matched / terms.length;
+}
+
+function editDistanceAtMostOne(left, right) {
+  if (Math.abs(left.length - right.length) > 1) return false;
+  let leftIndex = 0;
+  let rightIndex = 0;
+  let edits = 0;
+  while (leftIndex < left.length && rightIndex < right.length) {
+    if (left[leftIndex] === right[rightIndex]) {
+      leftIndex += 1;
+      rightIndex += 1;
+    } else {
+      edits += 1;
+      if (edits > 1) return false;
+      if (left.length > right.length) leftIndex += 1;
+      else if (right.length > left.length) rightIndex += 1;
+      else { leftIndex += 1; rightIndex += 1; }
+    }
+  }
+  return edits + Number(leftIndex < left.length || rightIndex < right.length) <= 1;
+}
 
 function readStorage(key, fallback) {
   try {
@@ -114,20 +167,20 @@ function renderPills() {
 
 function filteredProducts() {
   const query = state.search.trim().toLowerCase();
-  let result = products.filter(product => {
-    const haystack = `${product.name} ${product.category} ${product.brand} ${product.id} ${product.keywords}`.toLowerCase();
-    return (!query || haystack.includes(query)) &&
+  let result = products.map(product => ({ product, score: query ? searchScore(product, query) : 0 })).filter(({ product, score }) => {
+    return (!query || score >= Math.max(0.5, 1 / searchTerms(query).length)) &&
       (state.category === "All" || product.category.toLowerCase().includes(state.category.toLowerCase())) &&
       (!state.wishlistOnly || state.wishlist.includes(product.id)) &&
       (!state.dealOnly || product.previousPrice) &&
       (!state.newOnly || product.isNew);
   });
-  if (state.sort === "price-low") result.sort((a, b) => a.price - b.price);
-  if (state.sort === "price-high") result.sort((a, b) => b.price - a.price);
-  if (state.sort === "rating") result.sort((a, b) => b.rating - a.rating);
-  if (state.sort === "newest") result.sort((a, b) => Number(Boolean(b.isNew)) - Number(Boolean(a.isNew)));
-  if (state.sort === "featured") result.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
-  return result;
+  if (query) result.sort((a, b) => b.score - a.score);
+  if (state.sort === "price-low") result.sort((a, b) => a.product.price - b.product.price);
+  if (state.sort === "price-high") result.sort((a, b) => b.product.price - a.product.price);
+  if (state.sort === "rating") result.sort((a, b) => b.product.rating - a.product.rating);
+  if (state.sort === "newest") result.sort((a, b) => Number(Boolean(b.product.isNew)) - Number(Boolean(a.product.isNew)));
+  if (state.sort === "featured") result.sort((a, b) => query && b.score !== a.score ? b.score - a.score : Number(Boolean(b.product.featured)) - Number(Boolean(a.product.featured)));
+  return result.map(({ product }) => product);
 }
 
 function priceMarkup(product) {
@@ -164,13 +217,20 @@ function renderProducts() {
   $("#empty-products").hidden = matches.length > 0;
   $("#search-state").hidden = !state.search && !state.wishlistOnly && !state.dealOnly && !state.newOnly;
   const heading = state.wishlistOnly ? "Your saved picks." : state.dealOnly ? "Selected good deals." : state.newOnly ? "Just landed." : state.search ? `Results for “${state.search}”` : state.category !== "All" ? `${state.category} picks.` : "Popular right now.";
-  $("#product-section-title").innerHTML = `${heading.replace(/\.$/, "")} <em>${state.wishlistOnly ? "kept close." : "picked for you."}</em>`;
+  $("#product-section-title").innerHTML = `${escapeHTML(heading.replace(/\.$/, ""))} <em>${state.wishlistOnly ? "kept close." : "picked for you."}</em>`;
   $("#search-state").textContent = state.search ? `${matches.length} ${matches.length === 1 ? "find" : "finds"} for “${state.search}”` : state.wishlistOnly ? `${matches.length} saved ${matches.length === 1 ? "item" : "items"}` : state.dealOnly ? "Example offers. Confirm current prices and availability with our team." : "Example catalog. Confirm current prices, stock and device compatibility with our team.";
+  const marketLinks = $("#market-links");
+  marketLinks.hidden = !state.search.trim();
+  if (state.search.trim()) {
+    const marketQuery = encodeURIComponent(state.search.trim());
+    $("#jumia-market-link").href = `https://www.jumia.co.tz/catalog/?q=${marketQuery}`;
+    $("#google-market-link").href = `https://www.google.com/search?tbm=shop&q=${marketQuery}`;
+  }
   $("#product-count-label").textContent = matches.length ? `Showing ${shown.length} of ${matches.length} ${matches.length === 1 ? "product" : "products"}` : "";
   $("#show-more").hidden = matches.length <= shown.length;
   $("#show-more").innerHTML = `Explore all products <span aria-hidden="true">→</span>`;
-  $("#empty-products h3").textContent = state.wishlistOnly ? "Your saved list is waiting for its first pick." : "We couldn't find what you're looking for.";
-  $("#empty-products p").textContent = state.wishlistOnly ? "Tap the heart on a product to keep it close." : "Try a different search or browse all the good finds.";
+  $("#empty-products h3").textContent = state.wishlistOnly ? "Your saved list is waiting for its first pick." : state.search ? "No exact match in our store yet." : "Nothing in this little corner yet.";
+  $("#empty-products p").textContent = state.wishlistOnly ? "Tap the heart on a product to keep it close." : state.search ? "Compare current listings in Jumia Tanzania or Google Shopping above." : "Try a different search or browse all the good finds.";
 }
 
 function renderDealFeature() {
@@ -289,7 +349,11 @@ function renderSuggestions() {
   const query = $("#site-search").value.trim().toLowerCase();
   let suggestions;
   if (query) {
-    suggestions = products.filter(product => `${product.name} ${product.category} ${product.brand} ${product.id} ${product.keywords}`.toLowerCase().includes(query)).slice(0, 4).map(product => ({ label: product.name, detail: formatPrice(product.price), value: product.name }));
+    suggestions = products.map(product => ({ product, score: searchScore(product, query) }))
+      .filter(({ score }) => score >= Math.max(0.5, 1 / searchTerms(query).length))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map(({ product }) => ({ label: product.name, detail: formatPrice(product.price), value: product.name }));
   } else {
     const history = readStorage("noah-search-history", []);
     const defaults = ["Phone charger", "Wireless earbuds", "Flash drive", "USB cable"];
@@ -319,17 +383,32 @@ function submitSearch(value) {
 function openCheckout() {
   if (!state.cart.length) return;
   closeCart();
+  updateServiceEstimate();
   $("#checkout-dialog").showModal();
 }
 
+function updateServiceEstimate() {
+  const service = serviceOptions[$("#checkout-service").value];
+  const subtotal = state.cart.reduce((sum, item) => sum + products.find(product => product.id === item.id).price * item.quantity, 0);
+  const fee = service ? service.fee : 0;
+  const total = fee + (service?.includesGoods ? subtotal : 0);
+  $("#service-fee-amount").textContent = formatPrice(fee);
+  $("#service-total-amount").textContent = formatPrice(total);
+  $("#service-goods-note").textContent = service?.includesGoods ? "Includes your bag subtotal and the TSh 5,000 service fee." : "Asking and finding services do not include the goods in your bag.";
+}
+
 function buildOrderMessage(formData) {
+  const service = serviceOptions[formData.get("service")];
   const lines = state.cart.map(item => {
     const product = products.find(entry => entry.id === item.id);
     return `• ${product.name} (${product.id}) × ${item.quantity} — ${formatPrice(product.price * item.quantity)}`;
   });
   const subtotal = state.cart.reduce((sum, item) => sum + products.find(product => product.id === item.id).price * item.quantity, 0);
+  const total = service.fee + (service.includesGoods ? subtotal : 0);
   return [
-    `Hello ${STORE.name}, I would like to place an order:`, "", ...lines, "", `Subtotal: ${formatPrice(subtotal)}`,
+    `Hello ${STORE.name}, I would like to request a service: ${service.label}.`, "", ...lines, "",
+    `Goods subtotal: ${formatPrice(subtotal)}`, `Service fee: ${formatPrice(service.fee)}`,
+    `Estimated payment: ${formatPrice(total)}`, `Lipa Number for service payment: 251268047`,
     `Name: ${formData.get("name")}`, `Phone: ${formData.get("phone")}`, `Delivery: ${formData.get("delivery")}`,
     `Area/address: ${formData.get("address") || "To be confirmed"}`, `Payment preference: ${formData.get("payment")}`,
     "Please confirm availability and final delivery/payment details."
@@ -407,6 +486,7 @@ function bindEvents() {
   $("#drawer-backdrop").addEventListener("click", closeCart);
   $("#drawer-shop").addEventListener("click", () => { closeCart(); $("#shop").scrollIntoView({ behavior: "smooth" }); });
   $("#checkout-button").addEventListener("click", openCheckout);
+  $("#checkout-service").addEventListener("change", updateServiceEstimate);
   $("#checkout-form").addEventListener("submit", event => {
     event.preventDefault();
     const message = buildOrderMessage(new FormData(event.currentTarget));
