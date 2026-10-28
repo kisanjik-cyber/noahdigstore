@@ -10,6 +10,7 @@
     "Saved": "Vilivyohifadhiwa",
     "Open shopping bag": "Fungua kikapu",
     "Bag": "Kikapu",
+    "Translate": "Tafsiri",
     "Language": "Lugha",
     "Main navigation": "Urambazaji mkuu",
     "Home": "Nyumbani",
@@ -562,6 +563,10 @@
     if (originalTitle) document.title = translateValue(originalTitle);
     document.querySelectorAll("[data-language-toggle]").forEach(button => {
       button.setAttribute("aria-label", language === "en" ? "Switch language to Kiswahili" : "Switch language to English");
+      const code = button.querySelector(".language-code");
+      if (code) code.textContent = language === "en" ? "SW" : "EN";
+      const label = button.querySelector(".language-label");
+      if (label) label.textContent = language === "en" ? "Translate" : "Tafsiri";
     });
     document.body.childNodes.forEach(translateNode);
     document.querySelectorAll("[data-language-toggle]").forEach(button => {
