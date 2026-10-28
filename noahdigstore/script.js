@@ -6,6 +6,12 @@ const STORE = Object.freeze({
   currency: "TZS"
 });
 
+const SERVICE_OPTIONS = Object.freeze({
+  ask: { label: "Ask about a product", fee: 1000 },
+  find: { label: "Ask us to find a product", fee: 2000 },
+  buy: { label: "Buy goods and arrange delivery", fee: 5000 }
+});
+
 const products = [
   { id: "NDS-001", name: "USB-C Fast Wall Charger", category: "Power & charging", brand: "Everyday Tech", price: 25000, previousPrice: 30000, stock: 8, rating: 4.8, reviews: 24, badge: "17% OFF", featured: true, image: "photo-1583394838336-acd977736f90", keywords: "charger adapter type c fast samsung phone power", description: "A compact everyday charger for compatible USB-C devices.", specs: ["USB-C output", "Compact design", "Wall adapter"] },
   { id: "NDS-002", name: "Braided USB-C Cable", category: "Power & charging", brand: "Everyday Tech", price: 10000, previousPrice: 13000, stock: 14, rating: 4.7, reviews: 18, badge: "POPULAR", featured: true, image: "photo-1583863788434-e58a36330cf0", keywords: "cable charging type c usb braided", description: "A durable-feel braided cable for charging and everyday use.", specs: ["USB-C connector", "Braided finish", "Everyday length"] },
@@ -38,7 +44,8 @@ const products = [
   { id: "NDS-029", name: "USB Wi-Fi Adapter", category: "Networking", brand: "Connect Well", price: 26000, stock: 7, rating: 4.5, reviews: 7, badge: "GOOD FIND", image: "photo-1606904825846-647eb07f5be2", keywords: "usb wifi adapter wireless network computer", description: "A USB Wi-Fi adapter option for compatible computers.", specs: ["USB adapter", "Wireless networking", "Check OS compatibility"] },
   { id: "NDS-030", name: "Dual-Port USB Wall Charger", category: "Power & charging", brand: "Everyday Tech", price: 28000, stock: 9, rating: 4.6, reviews: 12, badge: "GOOD FIND", image: "photo-1583863788434-e58a36330cf0", keywords: "wall charger dual port usb power adapter", description: "A two-port wall charger for compatible everyday devices.", specs: ["Dual USB ports", "Wall adapter", "Check device requirements"] },
   { id: "NDS-031", name: "USB-C Charging Cable · 2 m", category: "Power & charging", brand: "Everyday Tech", price: 14000, stock: 12, rating: 4.5, reviews: 9, badge: "EVERYDAY PICK", image: "photo-1556656793-08538906a9f8", keywords: "usb c cable charging type c long 2m", description: "An extra-length USB-C cable for compatible charging setups.", specs: ["2 metre cable", "USB-C connector", "Check charging compatibility"] },
-  { id: "NDS-032", name: "Universal Travel Adapter", category: "Power & charging", brand: "Everyday Tech", price: 35000, stock: 6, rating: 4.5, reviews: 8, badge: "NEW IN", image: "photo-1625842268584-8f3296236761", keywords: "travel power adapter plug charger universal", description: "A travel adapter option. Confirm plug type and device compatibility.", specs: ["Travel adapter", "Power accessory", "Confirm plug compatibility"] }
+  { id: "NDS-032", name: "Universal Travel Adapter", category: "Power & charging", brand: "Everyday Tech", price: 35000, stock: 6, rating: 4.5, reviews: 8, badge: "NEW IN", image: "photo-1625842268584-8f3296236761", keywords: "travel power adapter plug charger universal", description: "A travel adapter option. Confirm plug type and device compatibility.", specs: ["Travel adapter", "Power accessory", "Confirm plug compatibility"] },
+  { id: "NDS-034", name: "Miicam 1080p USB Webcam", category: "Computer", brand: "Miicam", price: 45000, stock: 0, rating: null, reviews: null, badge: "PENDING", featured: false, image: "assets/miicam-webcam-illustration.svg", keywords: "webcam usb full hd 1080p video calls conferencing windows mac miicam", description: "Retail listings describe a 1080p USB 2.0 webcam with a built-in microphone and Windows/Mac compatibility. Confirm exact product configuration, Noah price, image, and stock before ordering.", specs: ["1080p video per retailer listing", "USB 2.0 connection per retailer listing", "Built-in microphone per retailer listing", "Windows and Mac compatibility per retailer listing"], pendingApproval: true, priceNote: "Retail reference only: TZS 45,000. Noah selling price not approved." }
 ];
 
 const categories = [
@@ -65,7 +72,7 @@ const state = {
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const formatPrice = amount => `${STORE.currency} ${new Intl.NumberFormat("en-TZ").format(amount)}`;
-const imageUrl = (id, width = 640) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=82`;
+const imageUrl = (id, width = 640) => id.startsWith("assets/") ? id : `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=82`;
 
 function readStorage(key, fallback) {
   try {
@@ -137,9 +144,10 @@ function priceMarkup(product) {
 
 function productCard(product) {
   const saved = state.wishlist.includes(product.id);
-  const badgeClass = product.stock === 0 ? "badge-soldout" : product.isNew ? "badge-new" : "";
-  const stockLabel = product.stock === 0 ? "Out of stock" : product.stock <= 4 ? `Only ${product.stock} left` : "In stock";
-  const stockClass = product.stock === 0 ? "out" : product.stock <= 4 ? "low" : "";
+  const badgeClass = product.pendingApproval ? "badge-pending" : product.stock === 0 ? "badge-soldout" : product.isNew ? "badge-new" : "";
+  const stockLabel = product.pendingApproval ? "Pending owner confirmation" : product.stock === 0 ? "Out of stock" : product.stock <= 4 ? `Only ${product.stock} left` : "In stock";
+  const stockClass = product.pendingApproval ? "pending" : product.stock === 0 ? "out" : product.stock <= 4 ? "low" : "";
+  const unavailable = product.stock === 0 || product.pendingApproval;
   return `<article class="product-card" data-product="${product.id}">
     <div class="product-media" data-view-product="${product.id}" role="button" tabindex="0" aria-label="Quick view ${product.name}">
       <img src="${imageUrl(product.image)}" alt="${product.name}" loading="lazy">
@@ -148,9 +156,9 @@ function productCard(product) {
       <button class="quick-view" type="button" data-view-product="${product.id}">Quick look</button>
     </div>
     <div class="product-info"><span class="product-category">${product.category} · ${product.brand}</span><h3>${product.name}</h3><p class="product-description">${product.description}</p>
-      <div class="product-rating" aria-label="Rated ${product.rating} out of 5"><span aria-hidden="true">★★★★★</span><span>${product.rating} · ${product.reviews} reviews</span></div>
-      ${priceMarkup(product)}<div class="stock-status ${stockClass}">${stockLabel}</div>
-      <button class="product-add" type="button" data-add-cart="${product.id}" ${product.stock === 0 ? "disabled" : ""}>${product.stock === 0 ? "Currently unavailable" : "＋ Add to bag"}</button>
+      ${Number.isFinite(product.rating) && Number.isFinite(product.reviews) ? `<div class="product-rating" aria-label="Rated ${product.rating} out of 5"><span aria-hidden="true">★★★★★</span><span>${product.rating} · ${product.reviews} reviews</span></div>` : ""}
+      ${product.pendingApproval ? `<div class="pending-price-reference">${product.priceNote}</div>` : priceMarkup(product)}<div class="stock-status ${stockClass}">${stockLabel}</div>
+      <button class="product-add" type="button" data-add-cart="${product.id}" ${unavailable ? "disabled" : ""}>${product.pendingApproval ? "Pending confirmation" : product.stock === 0 ? "Currently unavailable" : "＋ Add to bag"}</button>
     </div>
   </article>`;
 }
@@ -280,7 +288,9 @@ function showToast(message) {
 function openProduct(id) {
   const product = products.find(item => item.id === id);
   if (!product) return;
-  $("#product-dialog-content").innerHTML = `<div class="dialog-product"><div class="dialog-product-image"><img src="${imageUrl(product.image, 800)}" alt="${product.name}"></div><div class="dialog-product-info"><span class="product-category">${product.category} · ${product.brand}</span><h2 id="dialog-product-name">${product.name}</h2><div class="product-rating"><span aria-hidden="true">★★★★★</span><span>${product.rating} · ${product.reviews} reviews</span></div><p>${product.description}</p><div class="dialog-specs"><span>Product code<strong>${product.id}</strong></span><span>Availability<strong>${product.stock ? (product.stock <= 4 ? `Low stock · ${product.stock} left` : "In stock") : "Out of stock"}</strong></span>${product.specs.map((spec, index) => `<span>${index ? "Details" : "Product notes"}<strong>${spec}</strong></span>`).join("")}</div>${priceMarkup(product)}<button class="product-add" type="button" data-add-cart="${product.id}" ${product.stock === 0 ? "disabled" : ""}>${product.stock === 0 ? "Currently unavailable" : "＋ Add to bag"}</button><a class="text-link product-question" href="https://wa.me/${STORE.whatsappNumber}?text=${encodeURIComponent(`Hello ${STORE.name}, I have a question about ${product.name} (${product.id}), priced at ${formatPrice(product.price)}.`)}" target="_blank" rel="noreferrer">Ask us about this product ↗</a></div></div>`;
+  const unavailable = product.stock === 0 || product.pendingApproval;
+  const availability = product.pendingApproval ? "Pending owner confirmation" : product.stock ? (product.stock <= 4 ? `Low stock · ${product.stock} left` : "In stock") : "Out of stock";
+  $("#product-dialog-content").innerHTML = `<div class="dialog-product"><div class="dialog-product-image"><img src="${imageUrl(product.image, 800)}" alt="${product.name}${product.pendingApproval ? " (illustration; exact product image pending)" : ""}"></div><div class="dialog-product-info"><span class="product-category">${product.category} · ${product.brand}</span><h2 id="dialog-product-name">${product.name}</h2>${Number.isFinite(product.rating) && Number.isFinite(product.reviews) ? `<div class="product-rating"><span aria-hidden="true">★★★★★</span><span>${product.rating} · ${product.reviews} reviews</span></div>` : ""}<p>${product.description}</p><div class="dialog-specs"><span>Product code<strong>${product.id}</strong></span><span>Availability<strong>${availability}</strong></span>${product.specs.map((spec, index) => `<span>${index ? "Details" : "Product notes"}<strong>${spec}</strong></span>`).join("")}</div>${product.pendingApproval ? `<div class="pending-price-reference">${product.priceNote}</div>` : priceMarkup(product)}<button class="product-add" type="button" data-add-cart="${product.id}" ${unavailable ? "disabled" : ""}>${product.pendingApproval ? "Pending confirmation" : product.stock === 0 ? "Currently unavailable" : "＋ Add to bag"}</button><a class="text-link product-question" href="https://wa.me/${STORE.whatsappNumber}?text=${encodeURIComponent(`Hello ${STORE.name}, I have a question about ${product.name} (${product.id}).`)}" target="_blank" rel="noreferrer">Ask us about this product ↗</a></div></div>`;
   $("#product-dialog").showModal();
 }
 
@@ -322,16 +332,134 @@ function openCheckout() {
   $("#checkout-dialog").showModal();
 }
 
-function buildOrderMessage(formData) {
+function getServicePaymentDetails(service) {
+  const option = SERVICE_OPTIONS[service];
+  if (!option) return null;
+  const goodsSubtotal = state.cart.reduce((sum, item) => sum + products.find(product => product.id === item.id).price * item.quantity, 0);
+  return {
+    ...option,
+    estimated: option.fee + (service === "buy" ? goodsSubtotal : 0),
+    note: service === "buy"
+      ? "Estimated payment includes goods in your bag; delivery is confirmed by our team."
+      : "Asking and finding services do not include the goods in your bag."
+  };
+}
+
+function updateServicePaymentInfo() {
+  const details = getServicePaymentDetails($("#checkout-service").value);
+  const paymentInfo = $("#checkout-payment-info");
+  paymentInfo.hidden = !details;
+  if (!details) return;
+  $("#service-choice-label").textContent = details.label;
+  $("#service-fee-amount").textContent = formatPrice(details.fee);
+  $("#service-total-amount").textContent = formatPrice(details.estimated);
+  $("#service-goods-note").textContent = details.note;
+}
+
+function saveOrderToBusinessDesk(formData) {
+  const today = new Date().toISOString().slice(0, 10);
+  const dateCode = today.replaceAll("-", "");
+  let desk;
+  try {
+    const storedDesk = localStorage.getItem("noahDigitalStoresDesk_v1");
+    desk = storedDesk ? JSON.parse(storedDesk) : null;
+    if (!desk || !Array.isArray(desk.requests) || !Array.isArray(desk.suppliers) || !Array.isArray(desk.transactions)) {
+      desk = {
+        settings: { name: "Noah Digital Stores", tagline: "Unachokitafuta, tunakutafutia.", area: "Tabora", fee: 5000, phone: "", social: "" },
+        requests: [], suppliers: [], transactions: []
+      };
+    }
+  } catch {
+    return { requestNo: "", saved: false };
+  }
+
+  const usedNumbers = new Set(desk.requests.map(request => request.no));
+  let sequence = 1;
+  let requestNo = `NR-${dateCode}-${String(sequence).padStart(3, "0")}`;
+  while (usedNumbers.has(requestNo)) {
+    sequence += 1;
+    requestNo = `NR-${dateCode}-${String(sequence).padStart(3, "0")}`;
+  }
+
+  const serviceDetails = getServicePaymentDetails(formData.get("service"));
+  const goodsSubtotal = state.cart.reduce((sum, item) => sum + products.find(product => product.id === item.id).price * item.quantity, 0);
+  const cartCategories = [...new Set(state.cart.map(item => products.find(product => product.id === item.id).category))].join(", ");
+  const productDescription = state.cart.map(item => {
+    const product = products.find(entry => entry.id === item.id);
+    return `${product.name} (${product.id}) × ${item.quantity}`;
+  }).join("; ");
+  const receiptNumber = String(formData.get("receipt-number") || "").trim();
+  const customerNotes = [
+    `Service: ${serviceDetails.label}`,
+    `Goods subtotal: ${formatPrice(goodsSubtotal)}`,
+    `Estimated total: ${formatPrice(serviceDetails.estimated)}`,
+    `Payment method: ${formData.get("payment")}`,
+    `Payment receipt: ${receiptNumber}`,
+    `Customer reports paid; verify receipt before marking fee paid.`,
+    `Delivery preference: ${formData.get("delivery")}`,
+    `Delivery address: ${formData.get("address")}`,
+    `Supplier preference: ${formData.get("supplier") || "None provided"}`,
+    `Customer notes: ${formData.get("notes") || "None"}`
+  ].join("\n");
+  const request = {
+    id: globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`,
+    no: requestNo,
+    created: today,
+    updated: today,
+    customer: String(formData.get("name") || "").trim(),
+    phone: String(formData.get("phone") || "").trim(),
+    product: productDescription,
+    budget: Number(formData.get("budget") || 0),
+    area: String(formData.get("address") || "").trim(),
+    category: String(formData.get("category") || cartCategories || "Technology / Electronics"),
+    fee: serviceDetails.fee,
+    feeStatus: "Haijalipwa",
+    status: "Mpya",
+    supplierId: "",
+    details: String(formData.get("details") || "").trim(),
+    notes: `Bag checkout request.\n${customerNotes}`,
+    paymentMethod: String(formData.get("payment") || ""),
+    receiptNumber,
+    deliveryPreference: String(formData.get("delivery") || ""),
+    deliveryAddress: String(formData.get("address") || "").trim(),
+    orderSubtotal: goodsSubtotal,
+    goodsSubtotal,
+    estimatedTotal: serviceDetails.estimated,
+    source: "Bag checkout"
+  };
+
+  try {
+    desk.requests.push(request);
+    localStorage.setItem("noahDigitalStoresDesk_v1", JSON.stringify(desk));
+    return { requestNo, saved: true };
+  } catch {
+    return { requestNo, saved: false };
+  }
+}
+
+function buildOrderMessage(formData, requestNo) {
   const lines = state.cart.map(item => {
     const product = products.find(entry => entry.id === item.id);
-    return `• ${product.name} (${product.id}) × ${item.quantity} — ${formatPrice(product.price * item.quantity)}`;
+    return `• ${product.name} (${product.id}) · ${product.category} × ${item.quantity} — ${formatPrice(product.price * item.quantity)}`;
   });
   const subtotal = state.cart.reduce((sum, item) => sum + products.find(product => product.id === item.id).price * item.quantity, 0);
+  const serviceDetails = getServicePaymentDetails(formData.get("service"));
+  const cartCategories = [...new Set(state.cart.map(item => products.find(product => product.id === item.id).category))].join(", ");
+  const submittedDate = new Date().toISOString().slice(0, 10);
   return [
-    `Hello ${STORE.name}, I would like to place an order:`, "", ...lines, "", `Subtotal: ${formatPrice(subtotal)}`,
-    `Name: ${formData.get("name")}`, `Phone: ${formData.get("phone")}`, `Delivery: ${formData.get("delivery")}`,
-    `Area/address: ${formData.get("address") || "To be confirmed"}`, `Payment preference: ${formData.get("payment")}`,
+    `Hello ${STORE.name}, I would like to place an order:`, `Request number: ${requestNo || "Not saved to Desk"}`, `Submitted: ${submittedDate}`, "Request status: New", "", ...lines, "", `Subtotal: ${formatPrice(subtotal)}`,
+    `Service required: ${serviceDetails.label}`, `Lipa Number: 251268047`, `Service fee: ${formatPrice(serviceDetails.fee)}`,
+    `Estimated payment: ${formatPrice(serviceDetails.estimated)}`, serviceDetails.note,
+    `Name: ${formData.get("name")}`, `Phone / WhatsApp: ${formData.get("phone")}`,
+    `Product category: ${formData.get("category") || cartCategories || "Not specified"}`,
+    `Customer budget: ${formData.get("budget") ? formatPrice(Number(formData.get("budget"))) : "Not specified"}`,
+    `Product specifications/details: ${formData.get("details") || "Not provided"}`,
+    `Known supplier/store: ${formData.get("supplier") || "Not provided; Noah to identify if needed"}`,
+    `Delivery: ${formData.get("delivery")}`, `Area/address: ${formData.get("address") || "To be confirmed"}`,
+    `Additional notes: ${formData.get("notes") || "None"}`, `Payment preference: ${formData.get("payment")}`,
+    "Service fee status: Customer reports paid; verify receipt",
+    `Payment receipt / transaction number: ${formData.get("receipt-number")}`,
+    "Customer confirms payment has been completed. Please verify payment with the customer.",
     "Please confirm availability and final delivery/payment details."
   ].join("\n");
 }
@@ -407,17 +535,40 @@ function bindEvents() {
   $("#drawer-backdrop").addEventListener("click", closeCart);
   $("#drawer-shop").addEventListener("click", () => { closeCart(); $("#shop").scrollIntoView({ behavior: "smooth" }); });
   $("#checkout-button").addEventListener("click", openCheckout);
+  $("#checkout-service").addEventListener("change", updateServicePaymentInfo);
+  $(".payment-confirmation").addEventListener("change", event => {
+    if (event.target.name !== "payment-confirmed") return;
+    const receiptField = $("#receipt-number-field");
+    const receiptInput = $("[name='receipt-number']", receiptField);
+    const isPaid = event.target.value === "yes";
+    receiptField.hidden = !isPaid;
+    receiptInput.disabled = !isPaid;
+    receiptInput.required = isPaid;
+    if (!isPaid) receiptInput.value = "";
+  });
   $("#checkout-form").addEventListener("submit", event => {
     event.preventDefault();
-    const message = buildOrderMessage(new FormData(event.currentTarget));
+    const formData = new FormData(event.currentTarget);
+    if (formData.get("payment-confirmed") !== "yes" || !String(formData.get("receipt-number") || "").trim()) {
+      showToast("Confirm payment and enter its receipt number before sending the order.");
+      return;
+    }
+    const deskRecord = saveOrderToBusinessDesk(formData);
+    const message = buildOrderMessage(formData, deskRecord.requestNo);
     window.open(`https://wa.me/${STORE.whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     $("#checkout-dialog").close();
-    showToast("Your order message is ready in WhatsApp. The store will confirm it with you.");
+    $("#confirmation-reference").textContent = deskRecord.requestNo || "Not available";
+    $("#confirmation-save-status").textContent = deskRecord.saved
+      ? "Your request is recorded in this browser's Business Desk data. Noah will verify the payment receipt before updating its status."
+      : "The request could not be saved to this browser's Business Desk data. Please include the reference in your WhatsApp message.";
+    $("#order-confirmation").showModal();
   });
   $(".checkout-close").addEventListener("click", () => $("#checkout-dialog").close());
+  $(".order-confirmation-close").addEventListener("click", () => $("#order-confirmation").close());
   $(".dialog-close").addEventListener("click", () => $("#product-dialog").close());
   $("#product-dialog").addEventListener("click", event => { if (event.target === $("#product-dialog")) $("#product-dialog").close(); });
   $("#checkout-dialog").addEventListener("click", event => { if (event.target === $("#checkout-dialog")) $("#checkout-dialog").close(); });
+  $("#order-confirmation").addEventListener("click", event => { if (event.target === $("#order-confirmation")) $("#order-confirmation").close(); });
   $("#menu-toggle").addEventListener("click", openMenu);
   $("#close-menu").addEventListener("click", closeMenu);
   $("#menu-backdrop").addEventListener("click", closeMenu);
@@ -454,4 +605,5 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#wishlist-count").textContent = state.wishlist.length;
   bindEvents();
   rotateAnnouncements();
+  window.initNoahTranslations({ defaultLanguage: "en" });
 });

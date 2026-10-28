@@ -57,6 +57,8 @@ img { display: block; max-width: 100%; }
 .suggestion-item:hover { background: var(--paper); }
 .suggestion-item span:last-child { color: var(--muted); }
 .header-actions { display: flex; justify-content: flex-end; gap: 15px; }
+.language-toggle { min-height: 31px; align-self: center; padding: 0 9px; border: 1px solid #dfe3d9; border-radius: 3px; color: var(--forest); background: #fff; font-size: 9px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.language-toggle:hover { border-color: var(--forest); background: #f0f3eb; }
 .header-action { position: relative; display: grid; justify-items: center; gap: 0; padding: 3px 8px; border: 0; background: none; cursor: pointer; }
 .line-icon { color: var(--forest); font-size: 25px; line-height: 1.05; }
 .action-label { color: #5c665e; font-size: 9px; }
@@ -174,6 +176,7 @@ img { display: block; max-width: 100%; }
 .product-badge { position: absolute; z-index: 1; top: 10px; left: 10px; padding: 4px 6px; border-radius: 2px; color: #fff; background: var(--coral); font-size: 8px; font-weight: 700; }
 .product-badge.badge-new { color: var(--forest-deep); background: var(--lime); }
 .product-badge.badge-soldout { background: #707973; }
+.product-badge.badge-pending { color: #3a3926; background: #f3d982; }
 .wish-button { width: 30px; height: 30px; position: absolute; z-index: 2; top: 8px; right: 8px; display: grid; place-items: center; border: 0; border-radius: 50%; color: #27332d; background: #ffffffed; font-size: 19px; cursor: pointer; transition: color .2s, background .2s; }
 .wish-button.is-saved { color: #fff; background: var(--coral); }
 .quick-view { position: absolute; z-index: 1; right: 10px; bottom: 10px; left: 10px; min-height: 34px; border: 0; border-radius: 3px; color: var(--forest); background: #fffffff0; font-size: 9px; font-weight: 700; opacity: 0; transform: translateY(5px); transition: opacity .2s, transform .2s; cursor: pointer; }
@@ -191,6 +194,9 @@ img { display: block; max-width: 100%; }
 .stock-status { margin-top: 6px; color: #657e52; font-size: 8px; }
 .stock-status.low { color: #be7843; }
 .stock-status.out { color: #9b5a57; }
+.stock-status.pending { color: #8a6413; font-weight: 700; }
+.product-price-note { display: block; margin-top: 4px; color: #8a6413; font-size: 8px; line-height: 1.45; }
+.pending-price-reference { margin-top: 8px; padding: 7px; border-left: 2px solid #d6aa3b; color: #6f571e; background: #fbf5e3; font-size: 9px; line-height: 1.5; }
 .product-add { width: 100%; min-height: 35px; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 10px; border: 1px solid #dbe3d6; border-radius: 3px; color: var(--forest); background: #fff; font-size: 9px; font-weight: 700; cursor: pointer; transition: color .2s, background .2s, border .2s; }
 .product-add:hover:not(:disabled) { border-color: var(--forest); color: #fff; background: var(--forest); }
 .product-add:disabled { color: #a0a69f; background: #f4f5f1; cursor: not-allowed; }
@@ -308,10 +314,22 @@ img { display: block; max-width: 100%; }
 .checkout-content h2 { margin: 8px 0; font: 600 27px/1.15 var(--font-display); }
 .checkout-content h2 em { color: #678c6a; font-style: normal; }
 .checkout-content > p { margin: 0 0 18px; color: #737e75; font-size: 10px; }
+.order-confirmation-dialog .checkout-content > p { margin: 10px 0; font-size: 11px; line-height: 1.7; }
+.order-confirmation-dialog #confirmation-reference { color: var(--forest); font: 700 14px var(--font-display); }
+.order-confirmation-dialog .button { margin-top: 12px; }
 .checkout-close { position: absolute; z-index: 2; top: 12px; right: 12px; }
 .checkout-content form { display: grid; gap: 12px; }
 .checkout-content label { display: grid; gap: 5px; color: #536057; font-size: 10px; font-weight: 700; }
-.checkout-content input, .checkout-content select { width: 100%; min-height: 41px; padding: 0 11px; border: 1px solid #dfe4da; border-radius: 3px; color: var(--ink); background: #fff; font-size: 11px; }
+.checkout-content input, .checkout-content select, .checkout-content textarea { width: 100%; min-height: 41px; padding: 0 11px; border: 1px solid #dfe4da; border-radius: 3px; color: var(--ink); background: #fff; font-size: 11px; }
+.checkout-content textarea { min-height: 76px; padding-block: 9px; resize: vertical; }
+.payment-confirmation { display: grid; gap: 8px; margin: 0; padding: 12px; border: 1px solid #dfe4da; border-radius: 3px; }
+.payment-confirmation legend { padding: 0 4px; color: #536057; font-size: 10px; font-weight: 700; }
+.payment-confirmation label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.payment-confirmation input { width: 16px; min-height: 16px; margin: 0; accent-color: var(--forest); }
+.payment-confirmation .receipt-number-field { display: grid; gap: 5px; margin-top: 2px; }
+.payment-confirmation .receipt-number-field[hidden] { display: none; }
+.payment-confirmation .receipt-number-field input { width: 100%; min-height: 41px; padding: 0 11px; border: 1px solid #dfe4da; border-radius: 3px; color: var(--ink); background: #fff; font-size: 11px; }
+.payment-confirmation small { color: #7d877e; font-size: 9px; font-weight: 400; line-height: 1.6; }
 .checkout-submit { width: 100%; justify-content: space-between; margin-top: 3px; }
 .checkout-disclaimer { color: #7d877e; font-size: 9px; line-height: 1.6; }
 .dialog-close { position: absolute; z-index: 3; top: 12px; right: 12px; }
@@ -473,7 +491,7 @@ img { display: block; max-width: 100%; }
   .footer-note { padding-left: 10px; }
   .footer-note p { font-size: 12px; }
   .footer-bottom { min-height: 64px; align-items: start; flex-direction: column; justify-content: center; gap: 3px; padding-block: 10px; font-size: 7px; }
-  .mobile-bottom-nav { height: 62px; position: fixed; z-index: 25; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(5,1fr); border-top: 1px solid #e1e5dc; background: #fbfbf7f5; backdrop-filter: blur(14px); }
+  .mobile-bottom-nav { height: 62px; position: fixed; z-index: 25; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); border-top: 1px solid #e1e5dc; background: #fbfbf7f5; backdrop-filter: blur(14px); }
   .mobile-bottom-nav > a, .mobile-bottom-nav > button { display: grid; align-content: center; justify-items: center; gap: 1px; border: 0; color: #79837a; background: transparent; cursor: pointer; }
   .mobile-bottom-nav > a > span, .mobile-bottom-nav > button > span { position: relative; font-size: 20px; line-height: 1.05; }
   .mobile-bottom-nav small { font-size: 8px; }
